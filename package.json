@@ -1,0 +1,39 @@
+{
+  "name": "pumpfun-sniper",
+  "version": "1.0.0",
+  "description": "High-speed pump.fun sniping tool — detect and buy new token launches on Solana",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "nodemon --exec ts-node src/index.ts",
+    "snipe": "ts-node src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@coral-xyz/anchor": "^0.30.1",
+    "@solana/spl-token": "^0.4.9",
+    "@solana/web3.js": "^1.98.0",
+    "@triton-one/yellowstone-grpc": "^2.0.0",
+    "axios": "^1.7.9",
+    "bn.js": "^5.2.1",
+    "borsh": "^2.0.0",
+    "bs58": "^5.0.0",
+    "dotenv": "^16.4.5",
+    "jito-ts": "^4.2.1",
+    "lru-cache": "^10.4.3",
+    "winston": "^3.17.0",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/bn.js": "^5.1.6",
+    "@types/node": "^20.17.10",
+    "@types/ws": "^8.5.13",
+    "nodemon": "^3.1.9",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
