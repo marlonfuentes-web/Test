@@ -166,17 +166,18 @@ export class BuyExecutor {
       tipAmount
     );
 
-    let signature: string;
+    let signature = '';
 
     try {
-      // Bundle: [tip tx, buy tx]
+      // Bundle: [tip tx, buy tx] — Jito provides MEV protection + ordering
       const bundleResult = await this.bundleClient.sendBundle([tipTx, buyTx]);
-      signature = bundleResult.bundleId; // Use bundle ID as reference
+      signature = bundleResult.bundleId;
 
-      // Also send buy tx directly via RPC for redundancy
+      // Also send buy tx directly via RPC for redundancy (belt + suspenders)
       try {
-        signature = await sendRawTransaction(this.connection, buyTx);
-      } catch { /* bundle is primary */ }
+        const directSig = await sendRawTransaction(this.connection, buyTx);
+        signature = directSig; // prefer the real tx sig over bundle ID
+      } catch { /* bundle is primary — RPC fallback failure is non-fatal */ }
     } catch (bundleErr) {
       logger.warn(`Jito bundle failed: ${bundleErr}. Falling back to direct RPC.`);
       try {
@@ -185,6 +186,11 @@ export class BuyExecutor {
         logger.error(`Direct RPC also failed for ${event.symbol}: ${rpcErr}`);
         return;
       }
+    }
+
+    if (!signature) {
+      logger.error(`No signature obtained for ${event.symbol} buy — skipping position record`);
+      return;
     }
 
     // ── 11. Record position ───────────────────────────────────────────────

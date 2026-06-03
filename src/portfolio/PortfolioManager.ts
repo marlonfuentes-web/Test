@@ -2,6 +2,7 @@ import { EventEmitter } from 'events';
 import { PublicKey } from '@solana/web3.js';
 import { Position, PositionStatus } from './types';
 import { BondingCurveState, getSolForTokens, getPnlMultiplier } from '../pumpfun/BondingCurve';
+import { savePositions, loadPositions, logTradeRecord } from './Persistence';
 import logger from '../utils/logger';
 
 function generateId(): string {
@@ -16,6 +17,22 @@ export declare interface PortfolioManager {
 
 export class PortfolioManager extends EventEmitter {
   private positions = new Map<string, Position>(); // keyed by mint string
+
+  constructor() {
+    super();
+    // Restore positions saved from previous session
+    const saved = loadPositions();
+    // Only restore open positions (sold ones are historical)
+    const openSaved = saved.filter((p) => p.status === 'open' || p.status === 'selling');
+    for (const pos of openSaved) {
+      // Mark restored 'selling' positions back to 'open' since executor state is gone
+      pos.status = 'open';
+      this.positions.set(pos.mint, pos);
+    }
+    if (openSaved.length > 0) {
+      logger.info(`📂 Restored ${openSaved.length} open position(s) from previous session`);
+    }
+  }
 
   /** Open a new position after a successful buy. */
   openPosition(params: {
@@ -44,6 +61,8 @@ export class PortfolioManager extends EventEmitter {
     };
 
     this.positions.set(params.mint.toBase58(), position);
+    savePositions(this.getAllPositions());
+
     logger.info(
       `📂 Position opened: ${params.symbol} | ` +
       `Tokens: ${Number(params.tokenAmountHeld) / 1e6} | ` +
@@ -110,6 +129,9 @@ export class PortfolioManager extends EventEmitter {
       `Hold: ${holdTime}s | ` +
       `Tx: ${sellSignature.slice(0, 8)}...`
     );
+
+    savePositions(this.getAllPositions());
+    logTradeRecord(position);
 
     this.emit('positionClosed', position);
   }
